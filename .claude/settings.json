@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(rustc --version)",
+      "Bash(cargo --version)",
+      "Bash(winget install *)",
+      "Bash(rustup-init.exe -y)",
+      "Bash(mkdir -p \"i:/jizhang\")",
+      "Bash(cp -r \"i:/记账app/\"* \"i:/jizhang/\")",
+      "Bash(cp -r \"i:/记账app/\".* \"i:/jizhang/\")",
+      "Read(//i//**)",
+      "Read(//i/jizhang/**)",
+      "Bash(rm -rf src-tauri src/main src/preload electron test-simple tsconfig.main.json tsconfig.preload.json electron-vite.config.ts out dist-electron)",
+      "Bash(taskkill -PID 27564 -F)",
+      "Bash(git --version)",
+      "Bash(git init *)",
+      "Bash(git add *)",
+      "Bash(git commit *)"
+    ]
+  }
+}

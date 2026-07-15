@@ -1,0 +1,11 @@
+{
+  "name": "记账 - 个人财务管理",
+  "short_name": "记账",
+  "description": "记录每一笔花销",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#1677ff",
+  "orientation": "any",
+  "lang": "zh-CN"
+}

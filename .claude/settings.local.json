@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//i/jizhang/node_modules/electron/**)",
+      "Read(//i/jizhang/node_modules/electron/dist/**)"
+    ]
+  }
+}
