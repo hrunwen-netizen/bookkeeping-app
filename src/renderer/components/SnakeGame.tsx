@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Card, Button, Space, message, Statistic } from 'antd'
+import { Card, Button, Space, message } from 'antd'
 import { PlayCircleOutlined, PauseOutlined } from '@ant-design/icons'
 
 // 游戏配置
@@ -40,6 +40,13 @@ export default function SnakeGame() {
   const [isRunning, setIsRunning] = useState(false)
   const [isGameOver, setIsGameOver] = useState(false)
   const [score, setScore] = useState(0)
+  const [highScore, setHighScore] = useState(() => {
+    try {
+      return parseInt(localStorage.getItem('snake_high_score') || '0', 10) || 0
+    } catch {
+      return 0
+    }
+  })
   const [speed, setSpeed] = useState(INITIAL_SPEED)
 
   const directionRef = useRef(direction)
@@ -58,6 +65,15 @@ export default function SnakeGame() {
   useEffect(() => { speedRef.current = speed }, [speed])
   useEffect(() => { isRunningRef.current = isRunning }, [isRunning])
   useEffect(() => { isGameOverRef.current = isGameOver }, [isGameOver])
+
+  // 游戏结束时更新最高分
+  useEffect(() => {
+    if (isGameOver && score > highScore) {
+      setHighScore(score)
+      localStorage.setItem('snake_high_score', String(score))
+      message.success(`🎉 新纪录！最高分：${score}`)
+    }
+  }, [isGameOver])
 
   // 游戏循环
   const gameLoop = useCallback(() => {
@@ -190,8 +206,15 @@ export default function SnakeGame() {
       <Card
         title="🐍 贪吃蛇"
         extra={
-          <Space>
-            <Statistic value={score} prefix="🍎" valueStyle={{ fontSize: 20, color: '#52c41a' }} />
+          <Space size="large">
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: 11, color: '#888' }}>🏆 最高分</div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: '#fa8c16' }}>{highScore}</div>
+            </div>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: 11, color: '#888' }}>🍎 当前分数</div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: '#52c41a' }}>{score}</div>
+            </div>
           </Space>
         }
       >
@@ -309,9 +332,14 @@ export default function SnakeGame() {
               <div style={{ color: '#fff', fontSize: 28, fontWeight: 700, marginBottom: 8 }}>
                 💀 游戏结束
               </div>
-              <div style={{ color: '#aaa', fontSize: 16 }}>
+              <div style={{ color: '#aaa', fontSize: 16, marginBottom: 4 }}>
                 得分：{score}
               </div>
+              {score >= highScore && score > 0 && (
+                <div style={{ color: '#fa8c16', fontSize: 18, fontWeight: 700 }}>
+                  🎉 新纪录！
+                </div>
+              )}
             </div>
           )}
         </div>
