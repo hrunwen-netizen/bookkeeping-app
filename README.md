@@ -8,6 +8,7 @@
 - 📋 **账单明细** — 按月查看、编辑、删除记录
 - 📊 **月度统计** — 饼图、柱状图展示收支趋势和分类占比
 - 🏷️ **分类管理** — 预设分类 + 自定义分类，支持 emoji 图标
+- 🐍 **贪吃蛇** — 内置小游戏，方向键控制，最高分本地记录
 - 🌙 **深色模式** — 支持深色/浅色主题切换
 - 📥 **CSV 导出** — 导出当月账单，可用 Excel 打开
 
@@ -47,6 +48,7 @@ src/renderer/
 │   ├── ExpenseList.tsx  # 账单明细
 │   ├── MonthlyReport.tsx # 月度统计
 │   ├── CategoryManage.tsx # 分类管理
+│   ├── SnakeGame.tsx     # 贪吃蛇
 │   ├── Settings.tsx     # 设置
 │   └── Layout.tsx       # 布局框架
 ├── data/
