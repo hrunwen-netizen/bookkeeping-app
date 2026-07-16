@@ -32,7 +32,8 @@
       "Bash(git remote *)",
       "Bash(git push *)",
       "Bash(ssh -T git@github.com)",
-      "Bash(git commit -m '添加 README 项目说明书 *)"
+      "Bash(git commit -m '添加 README 项目说明书 *)",
+      "WebFetch(domain:github.com)"
     ]
   }
 }
