@@ -3,11 +3,13 @@ import { Card, Table, Tag, Button, Space, DatePicker, Popconfirm, message, Empty
 import { DeleteOutlined, ReloadOutlined, LeftOutlined, RightOutlined } from '@ant-design/icons'
 import dayjs, { Dayjs } from 'dayjs'
 import { getExpenses, deleteExpense } from '../database'
+import { getCategoryEmoji } from '../data/categories'
 
 export default function ExpenseList() {
   const [currentMonth, setCurrentMonth] = useState<Dayjs>(dayjs())
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [loading, setLoading] = useState(false)
+  const [emojiMap, setEmojiMap] = useState<Record<string, string>>({})
 
   const year = currentMonth.year()
   const month = currentMonth.month() + 1
@@ -17,6 +19,13 @@ export default function ExpenseList() {
     try {
       const data = await getExpenses(year, month)
       setExpenses(data)
+      // 预加载所有出现的一级分类的 emoji
+      const l1Set = [...new Set(data.map(e => e.category_l1))]
+      const map: Record<string, string> = {}
+      await Promise.all(l1Set.map(async (l1) => {
+        map[l1] = await getCategoryEmoji(l1)
+      }))
+      setEmojiMap(map)
     } catch (err) {
       message.error('加载失败：' + String(err))
     } finally {
@@ -55,7 +64,7 @@ export default function ExpenseList() {
       width: 180,
       render: (_: unknown, record: Expense) => (
         <span>
-          <Tag color="blue">{record.category_l1}</Tag>
+          <Tag color="blue">{emojiMap[record.category_l1] || '📌'} {record.category_l1}</Tag>
           <span style={{ color: '#888', fontSize: 12 }}>{record.category_l2}</span>
         </span>
       ),

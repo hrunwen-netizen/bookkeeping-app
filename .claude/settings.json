@@ -17,7 +17,11 @@
       "Bash(git add *)",
       "Bash(git commit *)",
       "Bash(git config *)",
-      "Bash(rm -rf src-tauri electron.vite.config.ts)"
+      "Bash(rm -rf src-tauri electron.vite.config.ts)",
+      "Bash(attrib -h \"i:\\\\记账app\\\\.git\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5173)",
+      "Bash(npx vite *)",
+      "Bash(git commit -m '功能：支持用户自定义分类管理 *)"
     ]
   }
 }

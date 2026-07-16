@@ -3,6 +3,7 @@ import { Card, Space, Button, Spin, Empty, message, Statistic } from 'antd'
 import { LeftOutlined, RightOutlined, ReloadOutlined } from '@ant-design/icons'
 import dayjs, { Dayjs } from 'dayjs'
 import { getMonthlyStats } from '../database'
+import { getCategoryEmoji } from '../data/categories'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend } from 'recharts'
 
 // 饼图颜色
@@ -15,6 +16,7 @@ export default function MonthlyReport() {
   const [currentMonth, setCurrentMonth] = useState<Dayjs>(dayjs())
   const [stats, setStats] = useState<MonthlyStats | null>(null)
   const [loading, setLoading] = useState(false)
+  const [emojiMap, setEmojiMap] = useState<Record<string, string>>({})
 
   const year = currentMonth.year()
   const month = currentMonth.month() + 1
@@ -24,6 +26,13 @@ export default function MonthlyReport() {
     try {
       const data = await getMonthlyStats(year, month)
       setStats(data)
+      // 预加载分类 emoji
+      const l1Set = [...new Set(data.by_category.map(c => c.category_l1))]
+      const map: Record<string, string> = {}
+      await Promise.all(l1Set.map(async (l1) => {
+        map[l1] = await getCategoryEmoji(l1)
+      }))
+      setEmojiMap(map)
     } catch (err) {
       message.error('加载统计失败：' + String(err))
     } finally {
@@ -111,7 +120,7 @@ export default function MonthlyReport() {
                       cy="50%"
                       labelLine={false}
                       label={({ name, percent }) =>
-                        `${name} ${(percent * 100).toFixed(0)}%`
+                        `${emojiMap[name] || ''} ${name} ${(percent * 100).toFixed(0)}%`
                       }
                       outerRadius={110}
                       dataKey="value"
@@ -160,7 +169,7 @@ export default function MonthlyReport() {
                   <tbody>
                     {stats.by_category.map((item) => (
                       <tr key={item.category_l1} style={{ borderBottom: '1px solid #f0f0f0' }}>
-                        <td style={{ padding: '8px 12px' }}>{item.category_l1}</td>
+                        <td style={{ padding: '8px 12px' }}>{emojiMap[item.category_l1] || '📌'} {item.category_l1}</td>
                         <td style={{ padding: '8px 12px', textAlign: 'right' }}>{item.count}</td>
                         <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 500 }}>
                           ¥{item.total.toFixed(2)}

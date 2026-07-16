@@ -15,7 +15,7 @@ async function loadDb(): Promise<SqlJsDatabase> {
   const saved = localStorage.getItem('jizhang_db')
   if (saved) {
     // 将 base64 字符串转回二进制
-    const binary = Uint8Array.from(atob(saved), (c) => c.charCodeAt(0))
+    const binary = Uint8Array.from(atob(saved), (c: string) => c.charCodeAt(0))
     db = new SQL.Database(binary)
   } else {
     db = new SQL.Database()
@@ -33,6 +33,23 @@ async function loadDb(): Promise<SqlJsDatabase> {
       created_at TEXT NOT NULL
     )
   `)
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS user_categories (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      emoji TEXT NOT NULL DEFAULT '📌',
+      parent_l1 TEXT,
+      created_at TEXT NOT NULL
+    )
+  `)
+
+  // 兼容旧数据库：给已有的 user_categories 表补上 emoji 列
+  try {
+    db.run(`ALTER TABLE user_categories ADD COLUMN emoji TEXT NOT NULL DEFAULT '📌'`)
+  } catch {
+    // 列已存在则忽略
+  }
 
   return db
 }
@@ -77,9 +94,9 @@ export async function getExpenses(year: number, month: number): Promise<Expense[
   )
   if (!result.length) return []
   const cols = result[0].columns
-  return result[0].values.map(row => {
+  return result[0].values.map((row: any[]) => {
     const obj: any = {}
-    cols.forEach((c, i) => { obj[c] = row[i] })
+    cols.forEach((c: string, i: number) => { obj[c] = row[i] })
     return obj as Expense
   })
 }
@@ -134,7 +151,7 @@ export async function getMonthlyStats(year: number, month: number): Promise<Mont
     const cols = catResult[0].columns
     for (const row of catResult[0].values) {
       const item: any = {}
-      cols.forEach((c, i) => { item[c] = row[i] })
+      cols.forEach((c: string, i: number) => { item[c] = row[i] })
       by_category.push(item)
     }
   }
@@ -150,13 +167,118 @@ export async function getMonthlyStats(year: number, month: number): Promise<Mont
     const cols = dayResult[0].columns
     for (const row of dayResult[0].values) {
       const item: any = {}
-      cols.forEach((c, i) => { item[c] = row[i] })
+      cols.forEach((c: string, i: number) => { item[c] = row[i] })
       by_day.push(item)
     }
   }
 
   return { total, by_category, by_day }
 }
+
+// ========== 用户自定义分类操作 ==========
+
+export async function getUserCategories(): Promise<UserCategory[]> {
+  const database = await loadDb()
+  const result = database.exec('SELECT * FROM user_categories ORDER BY parent_l1, id')
+  if (!result.length) return []
+  const cols = result[0].columns
+  return result[0].values.map((row: any[]) => {
+    const obj: any = {}
+    cols.forEach((c: string, i: number) => { obj[c] = row[i] })
+    return obj as UserCategory
+  })
+}
+
+export async function addUserCategory(name: string, parent_l1: string | null, emoji: string = '📌'): Promise<number> {
+  const database = await loadDb()
+
+  // 检查是否已存在同名分类
+  const existing = parent_l1 === null
+    ? database.exec('SELECT id FROM user_categories WHERE name = ? AND parent_l1 IS NULL', [name])
+    : database.exec('SELECT id FROM user_categories WHERE name = ? AND parent_l1 = ?', [name, parent_l1])
+  if (existing.length && existing[0].values.length) {
+    throw new Error('该分类名称已存在')
+  }
+
+  const createdAt = new Date().toISOString()
+  database.run(
+    'INSERT INTO user_categories (name, emoji, parent_l1, created_at) VALUES (?, ?, ?, ?)',
+    [name, emoji, parent_l1, createdAt]
+  )
+  saveDb()
+  const result = database.exec("SELECT last_insert_rowid()")
+  return Number(result[0]?.values[0]?.[0] ?? 0)
+}
+
+export async function updateUserCategory(id: number, newName: string, newEmoji?: string): Promise<void> {
+  const database = await loadDb()
+
+  // 查找旧分类信息
+  const catResult = database.exec('SELECT name, parent_l1 FROM user_categories WHERE id = ?', [id])
+  if (!catResult.length || !catResult[0].values.length) throw new Error('分类不存在')
+
+  const oldName = catResult[0].values[0][0] as string
+  const parentL1 = catResult[0].values[0][1] as string | null
+
+  // 检查新名称是否与已有分类重复
+  const dup = parentL1 === null
+    ? database.exec('SELECT id FROM user_categories WHERE name = ? AND parent_l1 IS NULL AND id != ?', [newName, id])
+    : database.exec('SELECT id FROM user_categories WHERE name = ? AND parent_l1 = ? AND id != ?', [newName, parentL1, id])
+  if (dup.length && dup[0].values.length) throw new Error('该分类名称已存在')
+
+  // 更新分类名称（和 emoji）
+  if (newEmoji) {
+    database.run('UPDATE user_categories SET name = ?, emoji = ? WHERE id = ?', [newName, newEmoji, id])
+  } else {
+    database.run('UPDATE user_categories SET name = ? WHERE id = ?', [newName, id])
+  }
+
+  if (parentL1 === null) {
+    // 一级分类：同步更新所有账单和子分类
+    database.run('UPDATE user_categories SET parent_l1 = ? WHERE parent_l1 = ?', [newName, oldName])
+    database.run('UPDATE expenses SET category_l1 = ? WHERE category_l1 = ?', [newName, oldName])
+  } else {
+    // 二级分类：同步更新账单
+    database.run(
+      'UPDATE expenses SET category_l2 = ? WHERE category_l1 = ? AND category_l2 = ?',
+      [newName, parentL1, oldName]
+    )
+  }
+
+  saveDb()
+}
+
+export async function deleteUserCategory(id: number): Promise<void> {
+  const database = await loadDb()
+
+  const catResult = database.exec('SELECT name, parent_l1 FROM user_categories WHERE id = ?', [id])
+  if (!catResult.length || !catResult[0].values.length) throw new Error('分类不存在')
+
+  const name = catResult[0].values[0][0] as string
+  const parentL1 = catResult[0].values[0][1] as string | null
+
+  if (parentL1 === null) {
+    // 删除一级分类：把所有用它的账单归到"其他支出"
+    database.run(
+      'UPDATE expenses SET category_l1 = ?, category_l2 = ? WHERE category_l1 = ?',
+      ['其他支出', '其他杂项', name]
+    )
+    // 删除它下面的所有二级分类
+    database.run('DELETE FROM user_categories WHERE parent_l1 = ?', [name])
+  } else {
+    // 删除二级分类：把用它的账单归到"其他支出 > 其他杂项"
+    database.run(
+      'UPDATE expenses SET category_l1 = ?, category_l2 = ? WHERE category_l1 = ? AND category_l2 = ?',
+      ['其他支出', '其他杂项', parentL1, name]
+    )
+  }
+
+  // 删除分类本身
+  database.run('DELETE FROM user_categories WHERE id = ?', [id])
+  saveDb()
+}
+
+// ========== CSV 导出 ==========
 
 export async function exportCSV(year: number, month: number): Promise<string> {
   const database = await loadDb()
@@ -172,7 +294,7 @@ export async function exportCSV(year: number, month: number): Promise<string> {
   let csv = '﻿日期,一级分类,二级分类,金额(元),备注\n'
   if (result.length) {
     for (const row of result[0].values) {
-      csv += row.map(v => {
+      csv += row.map((v: any) => {
         const str = String(v ?? '')
         return str.includes(',') || str.includes('"')
           ? `"${str.replace(/"/g, '""')}"`

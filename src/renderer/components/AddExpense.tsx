@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Card,
   Form,
@@ -13,7 +13,7 @@ import {
 import { PlusOutlined } from '@ant-design/icons'
 import dayjs from 'dayjs'
 import { addExpense } from '../database'
-import { getCategoryL1List, getCategoryL2List } from '../data/categories'
+import { getAllCategoryL1List, getAllCategoryL2List, getCategoryEmoji } from '../data/categories'
 
 interface AddExpenseProps {
   onSuccess?: () => void
@@ -23,14 +23,34 @@ export default function AddExpense({ onSuccess }: AddExpenseProps) {
   const [form] = Form.useForm()
   const [loading, setLoading] = useState(false)
   const [categoryL1, setCategoryL1] = useState<string | null>(null)
+  const [categoryL1List, setCategoryL1List] = useState<{ name: string; emoji: string }[]>([])
+  const [categoryL2List, setCategoryL2List] = useState<string[]>([])
+  const [noL2, setNoL2] = useState(false) // 该一级分类没有二级子分类
 
-  const categoryL1List = getCategoryL1List()
-  const categoryL2List = categoryL1 ? getCategoryL2List(categoryL1) : []
+  // 加载分类列表（含用户自定义分类 + emoji）
+  useEffect(() => {
+    getAllCategoryL1List().then(async (names) => {
+      const list = await Promise.all(names.map(async (name) => ({
+        name,
+        emoji: await getCategoryEmoji(name),
+      })))
+      setCategoryL1List(list)
+    })
+  }, [])
 
-  // 当一级分类改变时，清空二级分类
-  const handleCategoryL1Change = (value: string) => {
+  // 当一级分类改变时，加载对应的二级分类
+  const handleCategoryL1Change = async (value: string) => {
     setCategoryL1(value)
-    form.setFieldValue('category_l2', undefined)
+    const l2List = await getAllCategoryL2List(value)
+    setCategoryL2List(l2List)
+    if (l2List.length === 0) {
+      // 无二级分类：自动填入一级分类名
+      setNoL2(true)
+      form.setFieldValue('category_l2', value)
+    } else {
+      setNoL2(false)
+      form.setFieldValue('category_l2', undefined)
+    }
   }
 
   const handleSubmit = async (values: {
@@ -111,23 +131,30 @@ export default function AddExpense({ onSuccess }: AddExpenseProps) {
           >
             <Select
               placeholder="选择一级分类"
-              options={categoryL1List.map((c) => ({ label: c, value: c }))}
+              options={categoryL1List.map((c) => ({ label: `${c.emoji} ${c.name}`, value: c.name }))}
               onChange={handleCategoryL1Change}
             />
           </Form.Item>
 
-          {/* 二级分类 */}
-          <Form.Item
-            name="category_l2"
-            label="具体分类"
-            rules={[{ required: true, message: '请选择具体分类' }]}
-          >
-            <Select
-              placeholder={categoryL1 ? '选择具体分类' : '请先选择支出类别'}
-              options={categoryL2List.map((c) => ({ label: c, value: c }))}
-              disabled={!categoryL1}
-            />
-          </Form.Item>
+          {/* 二级分类：有子分类才显示选择框，否则自动用一级分类名 */}
+          {!noL2 && categoryL1 && (
+            <Form.Item
+              name="category_l2"
+              label="具体分类"
+              rules={[{ required: true, message: '请选择具体分类' }]}
+            >
+              <Select
+                placeholder="选择具体分类"
+                options={categoryL2List.map((c) => ({ label: c, value: c }))}
+              />
+            </Form.Item>
+          )}
+          {/* 无二级分类时用隐藏字段提交 */}
+          {noL2 && (
+            <Form.Item name="category_l2" hidden>
+              <input />
+            </Form.Item>
+          )}
 
           {/* 日期 */}
           <Form.Item

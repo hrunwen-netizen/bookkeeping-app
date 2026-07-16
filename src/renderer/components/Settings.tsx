@@ -1,6 +1,20 @@
 import { useState } from 'react'
-import { Card, Switch, Button, Space, message, Divider, Typography, Descriptions, Tag } from 'antd'
-import { ExportOutlined, BulbOutlined, FolderOpenOutlined } from '@ant-design/icons'
+import {
+  Card,
+  Switch,
+  Button,
+  Space,
+  message,
+  Divider,
+  Typography,
+  Descriptions,
+  Tag,
+} from 'antd'
+import {
+  ExportOutlined,
+  BulbOutlined,
+  FolderOpenOutlined,
+} from '@ant-design/icons'
 import dayjs from 'dayjs'
 import { exportCSV } from '../database'
 
@@ -20,7 +34,6 @@ export default function Settings({ isDark, onToggleTheme }: SettingsProps) {
     setExporting(true)
     try {
       const csv = await exportCSV(now.year(), now.month() + 1)
-      // 触发浏览器下载
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
       const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
@@ -37,7 +50,8 @@ export default function Settings({ isDark, onToggleTheme }: SettingsProps) {
   }
 
   return (
-    <div style={{ maxWidth: 600, margin: '24px auto' }}>
+    <div style={{ maxWidth: 700, margin: '24px auto' }}>
+      {/* ===== 设置 ===== */}
       <Card title="⚙️ 设置">
         <Space direction="vertical" size="large" style={{ width: '100%' }}>
           {/* 主题切换 */}
@@ -100,7 +114,7 @@ export default function Settings({ isDark, onToggleTheme }: SettingsProps) {
               <Descriptions.Item label="应用名称">记账</Descriptions.Item>
               <Descriptions.Item label="版本">1.0.0</Descriptions.Item>
               <Descriptions.Item label="技术栈">
-                <Tag>Tauri</Tag>
+                <Tag>Web App</Tag>
                 <Tag>React</Tag>
                 <Tag>SQLite</Tag>
               </Descriptions.Item>
@@ -121,9 +135,9 @@ export default function Settings({ isDark, onToggleTheme }: SettingsProps) {
               <br />
               • 在「月度统计」页面查看消费趋势图表
               <br />
-              • 数据文件保存在用户数据目录，备份时请保留
+              • 在「分类管理」页面管理支出分类和图标
               <br />
-              • 如需修改支出分类，可编辑 src/data/categories.ts 文件
+              • 数据文件保存在浏览器本地存储，备份时请导出 CSV
             </Paragraph>
           </Card>
         </Space>

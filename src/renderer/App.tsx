@@ -5,8 +5,9 @@ import AddExpense from './components/AddExpense'
 import ExpenseList from './components/ExpenseList'
 import MonthlyReport from './components/MonthlyReport'
 import Settings from './components/Settings'
+import CategoryManage from './components/CategoryManage'
 
-export type PageKey = 'add' | 'list' | 'report' | 'settings'
+export type PageKey = 'add' | 'list' | 'report' | 'categories' | 'settings'
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<PageKey>('add')
@@ -20,6 +21,8 @@ export default function App() {
         return <ExpenseList />
       case 'report':
         return <MonthlyReport />
+      case 'categories':
+        return <CategoryManage />
       case 'settings':
         return <Settings isDark={isDark} onToggleTheme={() => setIsDark(!isDark)} />
       default:

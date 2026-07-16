@@ -3,6 +3,7 @@ import {
   PlusCircleOutlined,
   UnorderedListOutlined,
   PieChartOutlined,
+  TagsOutlined,
   SettingOutlined,
 } from '@ant-design/icons'
 import type { PageKey } from '../App'
@@ -19,6 +20,7 @@ const menuItems = [
   { key: 'add', icon: <PlusCircleOutlined />, label: '记一笔' },
   { key: 'list', icon: <UnorderedListOutlined />, label: '支出明细' },
   { key: 'report', icon: <PieChartOutlined />, label: '月度统计' },
+  { key: 'categories', icon: <TagsOutlined />, label: '分类管理' },
   { key: 'settings', icon: <SettingOutlined />, label: '设置' },
 ]
 
