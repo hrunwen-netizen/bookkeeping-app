@@ -70,13 +70,11 @@ export default function SnakeGame() {
       y: head.y + DIRECTION_MAP[dir].y,
     }
 
-    // 撞墙
-    if (newHead.x < 0 || newHead.x >= BOARD_SIZE || newHead.y < 0 || newHead.y >= BOARD_SIZE) {
-      setIsGameOver(true)
-      setIsRunning(false)
-      message.error('💀 撞墙了！游戏结束')
-      return
-    }
+    // 穿墙（从另一边出来）
+    if (newHead.x < 0) newHead.x = BOARD_SIZE - 1
+    if (newHead.x >= BOARD_SIZE) newHead.x = 0
+    if (newHead.y < 0) newHead.y = BOARD_SIZE - 1
+    if (newHead.y >= BOARD_SIZE) newHead.y = 0
 
     // 撞自己
     if (snakeRef.current.some((s) => s.x === newHead.x && s.y === newHead.y)) {
@@ -171,7 +169,7 @@ export default function SnakeGame() {
     setSpeed(INITIAL_SPEED)
     setIsGameOver(false)
     setIsRunning(true)
-    message.success('🎮 游戏开始！方向键或 WASD 控制')
+    message.success('🎮 游戏开始！方向键或 WASD 控制，穿墙会从另一边出来')
   }
 
   const togglePause = () => {
