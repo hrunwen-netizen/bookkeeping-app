@@ -6,8 +6,9 @@ import ExpenseList from './components/ExpenseList'
 import MonthlyReport from './components/MonthlyReport'
 import Settings from './components/Settings'
 import CategoryManage from './components/CategoryManage'
+import SnakeGame from './components/SnakeGame'
 
-export type PageKey = 'add' | 'list' | 'report' | 'categories' | 'settings'
+export type PageKey = 'add' | 'list' | 'report' | 'categories' | 'settings' | 'snake'
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<PageKey>('add')
@@ -23,6 +24,8 @@ export default function App() {
         return <MonthlyReport />
       case 'categories':
         return <CategoryManage />
+      case 'snake':
+        return <SnakeGame />
       case 'settings':
         return <Settings isDark={isDark} onToggleTheme={() => setIsDark(!isDark)} />
       default:

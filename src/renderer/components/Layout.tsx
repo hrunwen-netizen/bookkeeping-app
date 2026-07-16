@@ -21,6 +21,7 @@ const menuItems = [
   { key: 'list', icon: <UnorderedListOutlined />, label: '账单明细' },
   { key: 'report', icon: <PieChartOutlined />, label: '月度统计' },
   { key: 'categories', icon: <TagsOutlined />, label: '分类管理' },
+  { key: 'snake', icon: <span style={{ fontSize: 16 }}>🐍</span>, label: '贪吃蛇' },
   { key: 'settings', icon: <SettingOutlined />, label: '设置' },
 ]
 
