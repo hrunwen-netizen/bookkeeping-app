@@ -32,6 +32,7 @@ declare interface Expense {
   date: string
   note: string
   created_at: string
+  type: 'expense' | 'income'
 }
 
 declare interface CategoryStat {
@@ -46,9 +47,12 @@ declare interface DailyStat {
 }
 
 declare interface MonthlyStats {
-  total: number
-  by_category: CategoryStat[]
-  by_day: DailyStat[]
+  expense_total: number
+  income_total: number
+  expense_by_category: CategoryStat[]
+  income_by_category: CategoryStat[]
+  expense_by_day: DailyStat[]
+  income_by_day: DailyStat[]
 }
 
 declare interface UserCategory {
@@ -57,4 +61,5 @@ declare interface UserCategory {
   emoji: string
   parent_l1: string | null
   created_at: string
+  category_type: 'expense' | 'income'
 }

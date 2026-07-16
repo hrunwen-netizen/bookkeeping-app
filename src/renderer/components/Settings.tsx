@@ -38,7 +38,7 @@ export default function Settings({ isDark, onToggleTheme }: SettingsProps) {
       const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
-      link.download = `支出记录_${now.year()}年${now.month() + 1}月.csv`
+      link.download = `账单记录_${now.year()}年${now.month() + 1}月.csv`
       link.click()
       URL.revokeObjectURL(url)
       message.success('下载已开始')
@@ -129,13 +129,13 @@ export default function Settings({ isDark, onToggleTheme }: SettingsProps) {
           {/* 使用提示 */}
           <Card size="small" type="inner" title="💡 使用提示">
             <Paragraph type="secondary" style={{ fontSize: 13, marginBottom: 0 }}>
-              • 在「记一笔」页面快速记录花销
+              • 在「记一笔」页面快速记录支出或收入
               <br />
-              • 在「支出明细」页面查看和编辑历史记录
+              • 在「账单明细」页面查看和编辑历史记录
               <br />
-              • 在「月度统计」页面查看消费趋势图表
+              • 在「月度统计」页面查看收支趋势图表
               <br />
-              • 在「分类管理」页面管理支出分类和图标
+              • 在「分类管理」页面管理支出和收入分类
               <br />
               • 数据文件保存在浏览器本地存储，备份时请导出 CSV
             </Paragraph>

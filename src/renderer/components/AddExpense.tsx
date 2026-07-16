@@ -9,6 +9,7 @@ import {
   Button,
   message,
   Space,
+  Segmented,
 } from 'antd'
 import { PlusOutlined } from '@ant-design/icons'
 import dayjs from 'dayjs'
@@ -22,26 +23,33 @@ interface AddExpenseProps {
 export default function AddExpense({ onSuccess }: AddExpenseProps) {
   const [form] = Form.useForm()
   const [loading, setLoading] = useState(false)
+  const [recordType, setRecordType] = useState<'expense' | 'income'>('expense')
   const [categoryL1, setCategoryL1] = useState<string | null>(null)
   const [categoryL1List, setCategoryL1List] = useState<{ name: string; emoji: string }[]>([])
   const [categoryL2List, setCategoryL2List] = useState<string[]>([])
   const [noL2, setNoL2] = useState(false) // 该一级分类没有二级子分类
 
-  // 加载分类列表（含用户自定义分类 + emoji）
+  // 加载分类列表（含用户自定义分类 + emoji），记录类型变化时重新加载
   useEffect(() => {
-    getAllCategoryL1List().then(async (names) => {
+    getAllCategoryL1List(recordType).then(async (names) => {
       const list = await Promise.all(names.map(async (name) => ({
         name,
-        emoji: await getCategoryEmoji(name),
+        emoji: await getCategoryEmoji(name, recordType),
       })))
       setCategoryL1List(list)
     })
-  }, [])
+    // 切换类型时清空已选分类
+    setCategoryL1(null)
+    setCategoryL2List([])
+    setNoL2(false)
+    form.setFieldValue('category_l1', undefined)
+    form.setFieldValue('category_l2', undefined)
+  }, [recordType])
 
   // 当一级分类改变时，加载对应的二级分类
   const handleCategoryL1Change = async (value: string) => {
     setCategoryL1(value)
-    const l2List = await getAllCategoryL2List(value)
+    const l2List = await getAllCategoryL2List(value, recordType)
     setCategoryL2List(l2List)
     if (l2List.length === 0) {
       // 无二级分类：自动填入一级分类名
@@ -68,6 +76,7 @@ export default function AddExpense({ onSuccess }: AddExpenseProps) {
         category_l2: values.category_l2,
         date: values.date.format('YYYY-MM-DD'),
         note: values.note || '',
+        type: recordType,
       })
       message.success('记账成功！')
       form.resetFields()
@@ -83,7 +92,7 @@ export default function AddExpense({ onSuccess }: AddExpenseProps) {
   return (
     <div className="add-expense-page">
       <Card
-        title="📝 记一笔"
+        title={`📝 记一笔 — ${recordType === 'expense' ? '支出' : '收入'}`}
         className="add-expense-card"
         extra={
           <Button type="link" onClick={() => onSuccess?.()}>
@@ -100,6 +109,20 @@ export default function AddExpense({ onSuccess }: AddExpenseProps) {
           }}
           size="large"
         >
+          {/* 收入/支出切换 */}
+          <Form.Item label="类型">
+            <Segmented
+              value={recordType}
+              onChange={(val) => setRecordType(val as 'expense' | 'income')}
+              options={[
+                { label: '💰 支出', value: 'expense' },
+                { label: '💵 收入', value: 'income' },
+              ]}
+              block
+              size="large"
+            />
+          </Form.Item>
+
           {/* 金额 */}
           <Form.Item
             name="amount"
@@ -116,7 +139,7 @@ export default function AddExpense({ onSuccess }: AddExpenseProps) {
           >
             <InputNumber
               style={{ width: '100%' }}
-              placeholder="花了多少钱？"
+              placeholder={recordType === 'expense' ? '花了多少钱？' : '收入多少钱？'}
               precision={2}
               prefix="¥"
               autoFocus
@@ -126,11 +149,11 @@ export default function AddExpense({ onSuccess }: AddExpenseProps) {
           {/* 一级分类 */}
           <Form.Item
             name="category_l1"
-            label="支出类别"
-            rules={[{ required: true, message: '请选择支出类别' }]}
+            label={recordType === 'expense' ? '支出类别' : '收入类别'}
+            rules={[{ required: true, message: recordType === 'expense' ? '请选择支出类别' : '请选择收入类别' }]}
           >
             <Select
-              placeholder="选择一级分类"
+              placeholder={recordType === 'expense' ? '选择支出分类' : '选择收入分类'}
               options={categoryL1List.map((c) => ({ label: `${c.emoji} ${c.name}`, value: c.name }))}
               onChange={handleCategoryL1Change}
             />

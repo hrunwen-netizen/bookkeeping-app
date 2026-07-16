@@ -12,6 +12,7 @@ import {
   Empty,
   Typography,
   Divider,
+  Tabs,
 } from 'antd'
 import {
   PlusOutlined,
@@ -27,6 +28,9 @@ import { getCategoryTree, CategoryTreeNode, EMOJI_GROUPS, getPresetEmoji } from 
 const { Text } = Typography
 
 export default function CategoryManage() {
+  // --- 当前 tab ---
+  const [activeTab, setActiveTab] = useState<'expense' | 'income'>('expense')
+
   // --- 分类树 ---
   const [tree, setTree] = useState<CategoryTreeNode[]>([])
   const [loading, setLoading] = useState(false)
@@ -50,11 +54,11 @@ export default function CategoryManage() {
       })).filter(g => g.emojis.length > 0)
     : EMOJI_GROUPS
 
-  // 加载分类树
+  // 加载分类树（tab 切换时重新加载）
   const loadTree = async () => {
     setLoading(true)
     try {
-      setTree(await getCategoryTree())
+      setTree(await getCategoryTree(activeTab))
     } catch (err) {
       message.error('加载分类失败：' + String(err))
     } finally {
@@ -62,7 +66,7 @@ export default function CategoryManage() {
     }
   }
 
-  useEffect(() => { loadTree() }, [])
+  useEffect(() => { loadTree() }, [activeTab])
 
   // 打开新增弹窗
   const openAdd = (parentL1: string | null) => {
@@ -78,7 +82,7 @@ export default function CategoryManage() {
   const openEdit = (item: CategoryTreeNode, parentL1: string | null) => {
     setEditingId(item.userCategoryId!)
     setModalName(item.name)
-    setModalEmoji(item.emoji || getPresetEmoji(item.name))
+    setModalEmoji(item.emoji || getPresetEmoji(item.name, activeTab))
     setEmojiSearch('')
     setModalParentL1(parentL1)
     setModalOpen(true)
@@ -94,7 +98,7 @@ export default function CategoryManage() {
         await updateUserCategory(editingId, name, modalEmoji)
         message.success('分类修改成功')
       } else {
-        await addUserCategory(name, modalParentL1, modalEmoji)
+        await addUserCategory(name, modalParentL1, modalEmoji, activeTab)
         message.success('分类添加成功')
       }
       setModalOpen(false)
@@ -111,7 +115,8 @@ export default function CategoryManage() {
     if (!item.userCategoryId) return
     try {
       await deleteUserCategory(item.userCategoryId)
-      message.success('分类已删除（已有账单已归到「其他支出」）')
+      const fallback = activeTab === 'expense' ? '其他支出' : '其他收入'
+      message.success(`分类已删除（已有账单已归到「${fallback}」）`)
       await loadTree()
     } catch (err) {
       message.error('删除失败：' + String(err))
@@ -124,6 +129,17 @@ export default function CategoryManage() {
 
   return (
     <div style={{ maxWidth: 720, margin: '24px auto' }}>
+      {/* ===== 支出/收入 Tab 切换 ===== */}
+      <Tabs
+        activeKey={activeTab}
+        onChange={(key) => setActiveTab(key as 'expense' | 'income')}
+        items={[
+          { key: 'expense', label: '💰 支出分类' },
+          { key: 'income', label: '💵 收入分类' },
+        ]}
+        style={{ marginBottom: 16 }}
+      />
+
       {/* ===== 预设分类 ===== */}
       <Card
         title={
@@ -151,22 +167,45 @@ export default function CategoryManage() {
                   <Tag color="blue" style={{ fontSize: 11 }}><LockOutlined /> 预设</Tag>
                 </Space>
               ),
+              extra: (
+                <Button type="dashed" size="small" icon={<PlusOutlined />}
+                  onClick={e => { e.stopPropagation(); openAdd(l1.name) }}>
+                  新增二级
+                </Button>
+              ),
               children: (
                 <div style={{ paddingLeft: 24 }}>
-                  {l1.children.map(l2 => (
-                    <div
-                      key={l2.name}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        padding: '4px 0',
-                        borderBottom: '1px dashed #f0f0f0',
-                      }}
-                    >
-                      <Tag color="blue" style={{ fontSize: 11 }}><LockOutlined /></Tag>
-                      <span style={{ fontSize: 14 }}>{l2.name}</span>
-                    </div>
-                  ))}
+                  {l1.children.length === 0 ? (
+                    <Text type="secondary" style={{ fontSize: 13 }}>暂无二级分类，点击右上角「新增二级」添加</Text>
+                  ) : (
+                    l1.children.map(l2 => (
+                      <div key={l2.name} style={{
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                        padding: '4px 0', borderBottom: '1px dashed #f0f0f0',
+                      }}>
+                        <Space>
+                          <span style={{ fontSize: 14 }}>{l2.name}</span>
+                          {l2.isPreset ? (
+                            <Tag color="blue" style={{ fontSize: 11 }}><LockOutlined /> 预设</Tag>
+                          ) : (
+                            <Space.Compact size="small">
+                              <Tag color="green" style={{ fontSize: 11 }}>自定义</Tag>
+                              <Button type="link" size="small" icon={<EditOutlined />}
+                                onClick={() => openEdit(l2, l1.name)} />
+                              <Popconfirm
+                                title="确定删除这个二级分类吗？"
+                                description={`已有的账单会自动归到「${activeTab === 'expense' ? '其他支出' : '其他收入'}」`}
+                                onConfirm={() => handleDelete(l2)}
+                                okText="确定删除" cancelText="取消"
+                              >
+                                <Button type="link" size="small" danger icon={<DeleteOutlined />} />
+                              </Popconfirm>
+                            </Space.Compact>
+                          )}
+                        </Space>
+                      </div>
+                    ))
+                  )}
                 </div>
               ),
             }))}
@@ -205,7 +244,7 @@ export default function CategoryManage() {
                       onClick={e => { e.stopPropagation(); openEdit(l1, null) }} />
                     <Popconfirm
                       title="确定删除这个一级分类吗？"
-                      description="已有的账单会自动归到「其他支出」"
+                      description={`已有的账单会自动归到「${activeTab === 'expense' ? '其他支出' : '其他收入'}」`}
                       onConfirm={e => { e?.stopPropagation(); handleDelete(l1) }}
                       onCancel={e => e?.stopPropagation()}
                       okText="确定删除" cancelText="取消"
@@ -243,7 +282,7 @@ export default function CategoryManage() {
                                 onClick={() => openEdit(l2, l1.name)} />
                               <Popconfirm
                                 title="确定删除这个二级分类吗？"
-                                description="已有的账单会自动归到「其他支出」"
+                                description={`已有的账单会自动归到「${activeTab === 'expense' ? '其他支出' : '其他收入'}」`}
                                 onConfirm={() => handleDelete(l2)}
                                 okText="确定删除" cancelText="取消"
                               >

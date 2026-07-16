@@ -23,6 +23,22 @@ const presetCategories: Record<string, PresetCategory> = {
   '其他支出': { emoji: '📦', children: ['快递运费', '证件办理', '罚款缴费', '其他杂项'] },
 }
 
+/** 收入预设分类（默认无二级子分类，用户可自行添加） */
+const incomePresetCategories: Record<string, PresetCategory> = {
+  '工资薪酬': { emoji: '💼', children: [] },
+  '投资收益': { emoji: '💰', children: [] },
+  '兼职副业': { emoji: '🛠️', children: [] },
+  '红包收入': { emoji: '🎁', children: [] },
+  '退款报销': { emoji: '🔙', children: [] },
+  '房租收入': { emoji: '🏠', children: [] },
+  '其他收入': { emoji: '📦', children: [] },
+}
+
+/** 内部辅助：根据类型返回对应的预设分类数据 */
+function getPresetMap(type: 'expense' | 'income'): Record<string, PresetCategory> {
+  return type === 'expense' ? presetCategories : incomePresetCategories
+}
+
 // --- Emoji 选择器数据 ---
 
 export interface EmojiGroup {
@@ -49,18 +65,18 @@ export const ALL_EMOJIS: string[] = [...new Set(EMOJI_GROUPS.flatMap(g => g.emoj
 // --- 基础查询（仅预设） ---
 
 /** 获取预设一级分类名称列表 */
-export function getCategoryL1List(): string[] {
-  return Object.keys(presetCategories)
+export function getCategoryL1List(type: 'expense' | 'income' = 'expense'): string[] {
+  return Object.keys(getPresetMap(type))
 }
 
 /** 根据一级分类获取预设二级分类列表 */
-export function getCategoryL2List(categoryL1: string): string[] {
-  return presetCategories[categoryL1]?.children || []
+export function getCategoryL2List(categoryL1: string, type: 'expense' | 'income' = 'expense'): string[] {
+  return getPresetMap(type)[categoryL1]?.children || []
 }
 
 /** 获取预设分类的 emoji，不存在则返回默认 📌 */
-export function getPresetEmoji(l1Name: string): string {
-  return presetCategories[l1Name]?.emoji || '📌'
+export function getPresetEmoji(l1Name: string, type: 'expense' | 'income' = 'expense'): string {
+  return getPresetMap(type)[l1Name]?.emoji || '📌'
 }
 
 // --- 分类树节点 ---
@@ -74,10 +90,10 @@ export interface CategoryTreeNode {
 }
 
 /** 获取某个一级分类名的 emoji（预设 > 用户自定义 > 默认） */
-export async function getCategoryEmoji(l1Name: string): Promise<string> {
-  const preset = presetCategories[l1Name]
+export async function getCategoryEmoji(l1Name: string, type: 'expense' | 'income' = 'expense'): Promise<string> {
+  const preset = getPresetMap(type)[l1Name]
   if (preset) return preset.emoji
-  const userCats = await getUserCategories()
+  const userCats = await getUserCategories(type)
   const userL1 = userCats.find(c => c.parent_l1 === null && c.name === l1Name)
   return userL1?.emoji || '📌'
 }
@@ -85,32 +101,33 @@ export async function getCategoryEmoji(l1Name: string): Promise<string> {
 // --- 合并查询（预设 + 用户自定义） ---
 
 /** 获取所有一级分类名称（预设 + 用户自定义，去重） */
-export async function getAllCategoryL1List(): Promise<string[]> {
-  const userCats = await getUserCategories()
+export async function getAllCategoryL1List(type: 'expense' | 'income' = 'expense'): Promise<string[]> {
+  const userCats = await getUserCategories(type)
   const userL1s = userCats.filter(c => c.parent_l1 === null).map(c => c.name)
-  return [...new Set([...Object.keys(presetCategories), ...userL1s])]
+  return [...new Set([...Object.keys(getPresetMap(type)), ...userL1s])]
 }
 
 /** 获取某个一级分类下的所有二级分类（预设 + 用户自定义，去重） */
-export async function getAllCategoryL2List(l1: string): Promise<string[]> {
-  const userCats = await getUserCategories()
+export async function getAllCategoryL2List(l1: string, type: 'expense' | 'income' = 'expense'): Promise<string[]> {
+  const userCats = await getUserCategories(type)
   const userL2s = userCats.filter(c => c.parent_l1 === l1).map(c => c.name)
-  return [...new Set([...(presetCategories[l1]?.children || []), ...userL2s])]
+  return [...new Set([...(getPresetMap(type)[l1]?.children || []), ...userL2s])]
 }
 
 /** 获取完整分类树（带预设/自定义标记和 emoji） */
-export async function getCategoryTree(): Promise<CategoryTreeNode[]> {
-  const userCats = await getUserCategories()
+export async function getCategoryTree(type: 'expense' | 'income' = 'expense'): Promise<CategoryTreeNode[]> {
+  const userCats = await getUserCategories(type)
   const userL1s = userCats.filter(c => c.parent_l1 === null)
-  const presetL1s = Object.keys(presetCategories)
+  const presetMap = getPresetMap(type)
+  const presetL1s = Object.keys(presetMap)
   const allL1s = [...new Set([...presetL1s, ...userL1s.map(c => c.name)])]
 
   return allL1s.map(l1 => {
     const isPreset = presetL1s.includes(l1)
     const userL1 = userL1s.find(c => c.name === l1)
-    const emoji = isPreset ? presetCategories[l1].emoji : (userL1?.emoji || '📌')
+    const emoji = isPreset ? presetMap[l1].emoji : (userL1?.emoji || '📌')
 
-    const presetL2s = presetCategories[l1]?.children || []
+    const presetL2s = presetMap[l1]?.children || []
     const userL2s = userCats.filter(c => c.parent_l1 === l1)
     const allL2s = [...new Set([...presetL2s, ...userL2s.map(c => c.name)])]
 

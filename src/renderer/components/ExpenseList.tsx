@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Card, Table, Tag, Button, Space, DatePicker, Popconfirm, message, Empty, Select } from 'antd'
+import { Card, Table, Tag, Button, Space, Popconfirm, message, Empty, Segmented } from 'antd'
 import { DeleteOutlined, ReloadOutlined, LeftOutlined, RightOutlined } from '@ant-design/icons'
 import dayjs, { Dayjs } from 'dayjs'
 import { getExpenses, deleteExpense } from '../database'
@@ -7,6 +7,7 @@ import { getCategoryEmoji } from '../data/categories'
 
 export default function ExpenseList() {
   const [currentMonth, setCurrentMonth] = useState<Dayjs>(dayjs())
+  const [recordType, setRecordType] = useState<'expense' | 'income'>('expense')
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [loading, setLoading] = useState(false)
   const [emojiMap, setEmojiMap] = useState<Record<string, string>>({})
@@ -17,13 +18,13 @@ export default function ExpenseList() {
   const loadExpenses = useCallback(async () => {
     setLoading(true)
     try {
-      const data = await getExpenses(year, month)
+      const data = await getExpenses(year, month, recordType)
       setExpenses(data)
       // 预加载所有出现的一级分类的 emoji
       const l1Set = [...new Set(data.map(e => e.category_l1))]
       const map: Record<string, string> = {}
       await Promise.all(l1Set.map(async (l1) => {
-        map[l1] = await getCategoryEmoji(l1)
+        map[l1] = await getCategoryEmoji(l1, recordType)
       }))
       setEmojiMap(map)
     } catch (err) {
@@ -31,7 +32,7 @@ export default function ExpenseList() {
     } finally {
       setLoading(false)
     }
-  }, [year, month])
+  }, [year, month, recordType])
 
   useEffect(() => {
     loadExpenses()
@@ -76,7 +77,9 @@ export default function ExpenseList() {
       width: 120,
       align: 'right' as const,
       render: (amount: number) => (
-        <span className="expense-item-amount">¥{amount.toFixed(2)}</span>
+        <span style={{ fontWeight: 500, color: recordType === 'expense' ? '#ff4d4f' : '#52c41a' }}>
+          {recordType === 'expense' ? '-' : '+'}¥{amount.toFixed(2)}
+        </span>
       ),
     },
     {
@@ -112,7 +115,7 @@ export default function ExpenseList() {
       <Card
         title={
           <Space>
-            <span>📋 支出明细</span>
+            <span>📋 {recordType === 'expense' ? '支出明细' : '收入明细'}</span>
           </Space>
         }
         extra={
@@ -137,10 +140,26 @@ export default function ExpenseList() {
           </Space>
         }
       >
+        {/* 类型切换 */}
+        <div style={{ textAlign: 'center', marginBottom: 16 }}>
+          <Segmented
+            value={recordType}
+            onChange={(val) => setRecordType(val as 'expense' | 'income')}
+            options={[
+              { label: '💰 支出', value: 'expense' },
+              { label: '💵 收入', value: 'income' },
+            ]}
+          />
+        </div>
+
         {/* 月度统计摘要 */}
         <div style={{ textAlign: 'center', marginBottom: 16 }}>
-          <div style={{ color: '#888', fontSize: 14 }}>{currentMonth.format('M 月')} 总支出</div>
-          <div className="amount-total">¥{totalAmount.toFixed(2)}</div>
+          <div style={{ color: '#888', fontSize: 14 }}>
+            {currentMonth.format('M 月')} {recordType === 'expense' ? '总支出' : '总收入'}
+          </div>
+          <div className="amount-total" style={{ color: recordType === 'expense' ? '#ff4d4f' : '#52c41a' }}>
+            ¥{totalAmount.toFixed(2)}
+          </div>
           <div style={{ color: '#888', fontSize: 12 }}>共 {expenses.length} 笔记录</div>
         </div>
 
