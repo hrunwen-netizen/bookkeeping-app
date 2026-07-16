@@ -21,7 +21,18 @@
       "Bash(attrib -h \"i:\\\\记账app\\\\.git\")",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5173)",
       "Bash(npx vite *)",
-      "Bash(git commit -m '功能：支持用户自定义分类管理 *)"
+      "Bash(git commit -m '功能：支持用户自定义分类管理 *)",
+      "Bash(git filter-branch -f --msg-filter ' *)",
+      "Bash(git stash *)",
+      "Bash(FILTER_BRANCH_SQUELCH_WARNING=1 git filter-branch -f --msg-filter ' *)",
+      "Bash(git commit -m '存档四：新增收入功能——支持记录收入，收支分类独立，月度统计同时展示收支 *)",
+      "Bash(mkdir -p ~/.ssh)",
+      "Bash(ssh-keygen -t ed25519 -C \"runwen@jizhang-app\" -f ~/.ssh/id_ed25519 -N \"\")",
+      "Bash(gh auth *)",
+      "Bash(git remote *)",
+      "Bash(git push *)",
+      "Bash(ssh -T git@github.com)",
+      "Bash(git commit -m '添加 README 项目说明书 *)"
     ]
   }
 }
